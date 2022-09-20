@@ -11,14 +11,17 @@ interface WeatherService {
     suspend fun getCurrentWeather(
         @Query("lat") lat: Double,
         @Query("lon") long: Double,
-        @Query("appid") appId: String
+        @Query("appid") appId: String,
+        @Query("units") unit: String = "metric"
     ): CurrentWeatherResponse
 
     @GET("data/2.5/forecast")
     suspend fun getFiveDayThreeHoursForecast(
         @Query("lat") lat: Double,
         @Query("lon") long: Double,
-        @Query("appid") appId: String
+        @Query("appid") appId: String,
+        @Query("units") unit: String = "metric"
+
     ): WeatherForecastResponse
 
 }

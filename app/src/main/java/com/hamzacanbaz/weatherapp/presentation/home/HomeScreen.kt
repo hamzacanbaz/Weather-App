@@ -3,6 +3,8 @@ package com.hamzacanbaz.weatherapp.presentation.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -35,28 +37,27 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.hamzacanbaz.weatherapp.R
+import com.hamzacanbaz.weatherapp.domain.model.CurrentWeatherModel
 import com.hamzacanbaz.weatherapp.ui.theme.CardBackground
 import com.hamzacanbaz.weatherapp.ui.theme.DateColor
 import com.hamzacanbaz.weatherapp.ui.theme.GradientDark
 import com.hamzacanbaz.weatherapp.ui.theme.GradientLight
+import com.hamzacanbaz.weatherapp.util.Constants
 import com.hamzacanbaz.weatherapp.util.Resource
 
 @Composable
 fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
     val currentWeather by homeViewModel.getCurrentWeather()
     val weatherForecast by homeViewModel.getForecast()
-
-    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = currentWeather is Resource.Loading)
-
+    val time by homeViewModel.getDate()
+    val swipeRefreshState =
+        rememberSwipeRefreshState(isRefreshing = currentWeather is Resource.Loading)
     val scrollState = rememberScrollState()
 
     when (currentWeather) {
         is Resource.Success -> {
-            println("success")
-            val viewState = (currentWeather as Resource.Success<HomeScreenViewState>).data
-            Surface(
-
-            ) {
+            val viewState = (currentWeather as Resource.Success<CurrentWeatherModel>).data
+            Surface() {
                 Box(
                     modifier = Modifier
                         .background(
@@ -72,14 +73,13 @@ fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
                         state = swipeRefreshState,
                         onRefresh = {
                             if (viewState != null) {
-                                homeViewModel.getCurrentWeather(
-                                    viewState.currentWeatherResponse.coord.lat,
-                                    viewState.currentWeatherResponse.coord.lon
+                                homeViewModel.getWeatherCurrent(
+                                    viewState.lat,
+                                    viewState.lon
                                 )
                                 homeViewModel.getWeatherForecast(
-                                    viewState.currentWeatherResponse.coord.lat,
-                                    viewState.currentWeatherResponse.coord.lon
-
+                                    viewState.lat,
+                                    viewState.lon
                                 )
                             }
                         },
@@ -89,98 +89,66 @@ fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
                             modifier = Modifier
                                 .verticalScroll(scrollState)
                         ) {
-                            Location()
-                            Date()
-                            DegreeAndIconPart()
-                            MinMaxAndFeelingPart()
-                            Weather()
-                            WeatherDetails()
-//                        PriceHeader(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
-//                            currency = stringResource(id = R.string.bitcoin_btc),
-//                            price = viewState.marketInformation.currentPrice,
-//                            changeRate = viewState.marketInformation.changeRate,
-//                            isChangeRatePositive = viewState.isChangeStatusPositive()
-//                        )
-//
-//                        TimeRangePicker(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
-//                            selectedTimeRange = viewState.getTimeRange()
-//                        ) { timeRange ->
-//                            marketViewModel.getMarketInformation(timeRange)
-//                        }
-//
-//                        Chart(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(top = 8.dp),
-//                            lineDataSet = viewState.getLineDataSet(LocalContext.current),
-//                        )
-//
-//                        Price(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
-//                            openPrice = viewState.marketInformation.openPrice,
-//                            closePrice = viewState.marketInformation.closePrice,
-//                            highPrice = viewState.marketInformation.highPrice,
-//                            lowPrice = viewState.marketInformation.lowPrice,
-//                            averagePrice = viewState.marketInformation.averagePrice,
-//                            changePrice = viewState.marketInformation.changePrice
-//                        )
-//
-//                        AboutChart(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(start = 16.dp, top = 24.dp, end = 16.dp),
-//                            aboutChart = viewState.marketInformation.aboutChart
-//                        )
+                            Location(viewState!!.locationName)
+                            Date(time)
+                            DegreeAndIconPart(
+                                viewState.mainTemp,
+                                viewState.weatherIcon
+                            )
+                            MinMaxAndFeelingPart(
+                                viewState.mainTempMin,
+                                viewState.mainTempMax,
+                                viewState.mainFeelsLike
+                            )
+                            Weather(viewState.weatherDesc)
+                            WeatherDetails(
+                                viewState.mainHumidity,
+                                viewState.windSpeed
+                            )
+
+                            Text(
+                                text = "Hourly",
+                                modifier = Modifier.padding(start = 16.dp, top = 36.dp),
+                                fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp
+                            )
+
+                            LazyRow {
+                                items(weatherForecast.data ?: listOf()) {
+                                    NextForecastItem(it.temp, it.time, it.date, it.icon)
+                                }
+                            }
                         }
                     }
-
                 }
             }
         }
         is Resource.Error -> {
             println(currentWeather.errorMessage)
             println("error")
-//            ErrorScreen(errorScreenViewState = ErrorScreenViewState((uiState as UiState.Error).exception)) {
-//                marketViewModel.getMarketInformation(TimeRange.THIRTY_DAYS)
-//            }
         }
         is Resource.Loading -> {
             println("loading")
-
             LoadingScreen()
         }
-        else -> {}
     }
 
     LaunchedEffect(Unit) {
-        homeViewModel.getCurrentWeather(37.0, 28.0)
-        homeViewModel.getWeatherForecast(37.0, 28.0)
+        homeViewModel.getWeatherCurrent(Constants.LAT, Constants.LON)
+        homeViewModel.getWeatherForecast(Constants.LAT, Constants.LON)
     }
-
-
 }
 
 @Composable
-fun DegreeAndIconPart() {
+fun DegreeAndIconPart(currentTemp: String, iconSrc: Int) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .padding(top = 36.dp)
             .fillMaxWidth()
-
-
     ) {
         Image(
-            painterResource(R.drawable.sun),
+            painterResource(iconSrc),
             contentDescription = "",
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -192,7 +160,7 @@ fun DegreeAndIconPart() {
                 .padding(start = 16.dp),
             contentAlignment = Alignment.Center,
         ) {
-            NormalText(text = "23°", fontSize = 64.sp)
+            NormalText(text = "$currentTemp°", fontSize = 64.sp)
 
         }
     }
@@ -202,7 +170,7 @@ fun DegreeAndIconPart() {
 
 
 @Composable
-fun MinMaxAndFeelingPart() {
+fun MinMaxAndFeelingPart(minTemp: String, maxTemp: String, feelingTemp: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -210,7 +178,6 @@ fun MinMaxAndFeelingPart() {
             .fillMaxWidth()
             .padding(top = 16.dp)
 
-
     ) {
         Box(
             modifier = Modifier
@@ -218,16 +185,15 @@ fun MinMaxAndFeelingPart() {
                 .padding(start = 16.dp),
             contentAlignment = Alignment.Center,
         ) {
-            NormalText(text = "21°/27°")
+            NormalText(text = "$minTemp°/$maxTemp°")
         }
-
         Box(
             modifier = Modifier
                 .wrapContentSize()
                 .padding(start = 16.dp),
             contentAlignment = Alignment.Center,
         ) {
-            NormalText(text = "Feels like 25°")
+            NormalText(text = "Feels like $feelingTemp°")
         }
     }
 
@@ -235,28 +201,24 @@ fun MinMaxAndFeelingPart() {
 }
 
 @Composable
-fun Location() {
+fun Location(locationName: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 48.dp)
-
-
     ) {
         Icon(Icons.Filled.LocationOn, tint = Color.White, contentDescription = "location")   // ok
-
         Box(
             modifier = Modifier
                 .wrapContentSize()
                 .padding(start = 4.dp),
             contentAlignment = Alignment.Center,
         ) {
-
             Text(
                 color = Color.White,
-                text = "London",
+                text = locationName,
                 fontSize = 20.sp,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold
@@ -266,14 +228,12 @@ fun Location() {
 }
 
 @Composable
-fun Date() {
+fun Date(date: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxWidth()
-
-
     ) {
         Box(
             modifier = Modifier
@@ -281,7 +241,7 @@ fun Date() {
                 .padding(start = 16.dp, top = 4.dp),
             contentAlignment = Alignment.Center,
         ) {
-            NormalText(text = "Thu 5 December 8:41 am", color = DateColor, fontSize = 16.sp)
+            NormalText(text = date, color = DateColor, fontSize = 16.sp)
         }
 
     }
@@ -290,22 +250,20 @@ fun Date() {
 }
 
 @Composable
-fun Weather() {
+fun Weather(weather: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp)
-
-
     ) {
         Box(
             modifier = Modifier
                 .wrapContentSize(),
             contentAlignment = Alignment.Center,
         ) {
-            NormalText(text = "Cloudy", fontWeight = FontWeight.Bold)
+            NormalText(text = weather, fontWeight = FontWeight.Bold)
         }
 
     }
@@ -314,7 +272,7 @@ fun Weather() {
 }
 
 @Composable
-fun WeatherDetails() {
+fun WeatherDetails(humidity: String, windSpeed: String) {
     Box(
         modifier = Modifier
             .padding(top = 32.dp, start = 12.dp, end = 12.dp)
@@ -333,16 +291,15 @@ fun WeatherDetails() {
                 iconId = R.drawable.water,
                 contentDescription = "water",
                 itemName = "Humidity",
-                itemValue = "20%"
+                itemValue = "$humidity%"
             )
-
 //            Divider(
 //                color = Color.White,
 //                modifier = Modifier
 //                    .fillMaxHeight()
 //                    .width(1.dp)
 //            )
-            weatherDetailItem(R.drawable.wind, "wind", "Wind Speed", "0.62 m/s%")
+            weatherDetailItem(R.drawable.wind, "wind", "Wind Speed", "$windSpeed m/s")
         }
     }
 }
@@ -368,34 +325,114 @@ fun weatherDetailItem(
                     .size(24.dp)
             )
         }
-
-
         Column(modifier = Modifier.padding(start = 16.dp)) {
             Text(
                 color = Color.White,
                 text = itemName,
                 fontSize = 20.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
             )
-
             Text(
                 color = Color.White,
                 text = itemValue,
                 fontSize = 20.sp,
                 textAlign = TextAlign.Center
             )
-
         }
-
     }
+}
 
+@Composable
+fun NextForecastItem(temp: String, time: String, date: String, iconSrc: Int) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(top = 12.dp, start = 12.dp, end = 12.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(CardBackground), contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier
+                .wrapContentHeight()
+                .width(IntrinsicSize.Min)
+                .padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    color = Color.White,
+                    text = time,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    color = Color.White,
+                    text = date,
+                    fontSize = 8.sp,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Image(
+                    painterResource(iconSrc),
+                    contentDescription = "contentDescription",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.Center)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    color = Color.White,
+                    text = temp,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
 }
 
 
 @Composable
 fun LoadingScreen(modifier: Modifier = Modifier) {
-    Surface(modifier = modifier.fillMaxSize()) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+    Surface(
+        modifier = modifier.fillMaxSize()
+    ) {
+        Box(
+            contentAlignment = Alignment.Center, modifier = Modifier
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            GradientDark, GradientLight
+                        )
+                    )
+                )
+                .fillMaxSize()
+        ) {
             LoadingAnimation(modifier = Modifier.size(75.dp))
         }
     }
@@ -409,7 +446,6 @@ fun LoadingAnimation(modifier: Modifier = Modifier) {
                 R.raw.loadinganimation
             )
         )
-
         LottieAnimation(
             composition = composition,
             iterations = LottieConstants.IterateForever
