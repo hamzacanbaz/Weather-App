@@ -1,4 +1,4 @@
-package com.hamzacanbaz.weatherapp.data.source.remote
+package com.hamzacanbaz.weatherapp.data.source.remote.weather
 
 import com.hamzacanbaz.weatherapp.data.model.weather.CurrentWeatherResponse
 import com.hamzacanbaz.weatherapp.data.model.weatherForecast.WeatherForecastResponse

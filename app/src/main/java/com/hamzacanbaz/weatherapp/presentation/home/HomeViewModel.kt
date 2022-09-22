@@ -1,8 +1,9 @@
 package com.hamzacanbaz.weatherapp.presentation.home
 
+import android.app.Application
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hamzacanbaz.weatherapp.data.model.weather.toCurrentWeatherModel
 import com.hamzacanbaz.weatherapp.data.model.weatherForecast.toWeatherForecastList
@@ -13,6 +14,8 @@ import com.hamzacanbaz.weatherapp.domain.usecase.GetWeatherForecastUseCase
 import com.hamzacanbaz.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import javax.inject.Inject
 
@@ -21,8 +24,9 @@ private const val appId = "d745980d02bcd1c7ae5295fceebf1c75"
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getCurrentWeatherUseCase: GetCurrentWeatherUseCase,
-    private val getWeatherForecastUseCase: GetWeatherForecastUseCase
-) : ViewModel() {
+    private val getWeatherForecastUseCase: GetWeatherForecastUseCase,
+    application: Application
+) : AndroidViewModel(application) {
 
     private val _date = mutableStateOf("")
     private val currentWeather = mutableStateOf<Resource<CurrentWeatherModel>>(Resource.Loading())
@@ -70,7 +74,6 @@ class HomeViewModel @Inject constructor(
                 currentWeather.value = Resource.Error(e.message.toString())
             }
         }
-
     }
 
     fun getCurrentTime() {
@@ -78,5 +81,6 @@ class HomeViewModel @Inject constructor(
         val currentDateAndTime = sdf.format(java.util.Date())
         _date.value = currentDateAndTime
     }
+
 
 }

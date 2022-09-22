@@ -1,19 +1,13 @@
 package com.hamzacanbaz.weatherapp.di
 
-import android.app.Application
-import android.content.Context
 import com.hamzacanbaz.weatherapp.data.repository.WeatherRepositoryImpl
-import com.hamzacanbaz.weatherapp.data.source.remote.WeatherRemoteDataSource
-import com.hamzacanbaz.weatherapp.data.source.remote.WeatherService
+import com.hamzacanbaz.weatherapp.data.source.remote.weather.WeatherRemoteDataSource
+import com.hamzacanbaz.weatherapp.data.source.remote.weather.WeatherService
 import com.hamzacanbaz.weatherapp.domain.repository.WeatherRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import javax.inject.Singleton
 
 
 @Module

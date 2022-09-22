@@ -1,6 +1,7 @@
 package com.hamzacanbaz.weatherapp.di
 
-import com.hamzacanbaz.weatherapp.data.source.remote.WeatherService
+import com.hamzacanbaz.weatherapp.data.source.remote.countries.CountriesService
+import com.hamzacanbaz.weatherapp.data.source.remote.weather.WeatherService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,6 +16,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val WEATHER_API_URL = "https://api.openweathermap.org/"
+    private const val COUNTRIES_URL = "https://countriesnow.space/api/v0.1/"
 
     @Provides
     @Singleton
@@ -25,5 +27,16 @@ object NetworkModule {
             .build()
             .create(WeatherService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideCountriesService(): CountriesService {
+        return Retrofit.Builder()
+            .baseUrl(COUNTRIES_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(CountriesService::class.java)
+    }
+
 
 }

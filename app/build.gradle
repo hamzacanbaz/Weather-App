@@ -118,5 +118,8 @@ dependencies {
     // Glide Image
     implementation "com.github.skydoves:landscapist-glide:2.0.0"
 
+    implementation 'com.google.android.libraries.places:places:2.6.0'
+
+
 
 }

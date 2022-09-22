@@ -1,18 +1,16 @@
 package com.hamzacanbaz.weatherapp.presentation.home
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,14 +45,19 @@ import com.hamzacanbaz.weatherapp.util.Constants
 import com.hamzacanbaz.weatherapp.util.Resource
 
 @Composable
-fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    onClickAddLocation: () -> Unit,
+    lat: Double = Constants.LAT,
+    lon: Double = Constants.LON
+) {
+    println("lat -> $lat lon-> $lon")
     val currentWeather by homeViewModel.getCurrentWeather()
     val weatherForecast by homeViewModel.getForecast()
     val time by homeViewModel.getDate()
     val swipeRefreshState =
         rememberSwipeRefreshState(isRefreshing = currentWeather is Resource.Loading)
     val scrollState = rememberScrollState()
-
     when (currentWeather) {
         is Resource.Success -> {
             val viewState = (currentWeather as Resource.Success<CurrentWeatherModel>).data
@@ -74,12 +78,12 @@ fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
                         onRefresh = {
                             if (viewState != null) {
                                 homeViewModel.getWeatherCurrent(
-                                    viewState.lat,
-                                    viewState.lon
+                                    Constants.LAT,
+                                    lon
                                 )
                                 homeViewModel.getWeatherForecast(
-                                    viewState.lat,
-                                    viewState.lon
+                                    Constants.LAT,
+                                    lon
                                 )
                             }
                         },
@@ -89,6 +93,10 @@ fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
                             modifier = Modifier
                                 .verticalScroll(scrollState)
                         ) {
+                            AddLocation {
+                                onClickAddLocation.invoke()
+                            }
+
                             Location(viewState!!.locationName)
                             Date(time)
                             DegreeAndIconPart(
@@ -133,8 +141,8 @@ fun HomeScreen(homeViewModel: HomeViewModel = hiltViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        homeViewModel.getWeatherCurrent(Constants.LAT, Constants.LON)
-        homeViewModel.getWeatherForecast(Constants.LAT, Constants.LON)
+        homeViewModel.getWeatherCurrent(Constants.LAT, lon)
+        homeViewModel.getWeatherForecast(Constants.LAT, lon)
     }
 }
 
@@ -166,6 +174,31 @@ fun DegreeAndIconPart(currentTemp: String, iconSrc: Int) {
     }
 
 
+}
+
+@Composable
+@Preview
+fun addLocationPreview() {
+    AddLocation()
+}
+
+@Composable
+fun AddLocation(addLocationClick: () -> Unit = {}) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 16.dp, top = 16.dp), contentAlignment = Alignment.CenterEnd
+    ) {
+        Icon(
+            Icons.Filled.Add,
+            tint = Color.White,
+            contentDescription = "add location",
+            modifier = Modifier.clickable {
+                addLocationClick.invoke()
+            }
+        )
+
+    }
 }
 
 
@@ -207,7 +240,7 @@ fun Location(locationName: String) {
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 48.dp)
+            .padding(top = 24.dp)
     ) {
         Icon(Icons.Filled.LocationOn, tint = Color.White, contentDescription = "location")   // ok
         Box(

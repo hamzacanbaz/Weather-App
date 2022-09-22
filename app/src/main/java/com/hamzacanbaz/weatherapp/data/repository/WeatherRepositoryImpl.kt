@@ -2,7 +2,7 @@ package com.hamzacanbaz.weatherapp.data.repository
 
 import com.hamzacanbaz.weatherapp.data.model.weather.CurrentWeatherResponse
 import com.hamzacanbaz.weatherapp.data.model.weatherForecast.WeatherForecastResponse
-import com.hamzacanbaz.weatherapp.data.source.remote.WeatherRemoteDataSource
+import com.hamzacanbaz.weatherapp.data.source.remote.weather.WeatherRemoteDataSource
 import com.hamzacanbaz.weatherapp.domain.repository.WeatherRepository
 import javax.inject.Inject
 
