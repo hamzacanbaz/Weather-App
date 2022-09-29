@@ -121,5 +121,15 @@ dependencies {
     implementation 'com.google.android.libraries.places:places:2.6.0'
 
 
+    implementation "androidx.room:room-runtime:2.4.2"
+    implementation "androidx.room:room-ktx:2.4.2"
+    kapt "androidx.room:room-compiler:2.4.2"
+
+    implementation "com.google.accompanist:accompanist-pager:0.26.4-beta"
+
+    // If using indicators, also depend on
+    implementation "com.google.accompanist:accompanist-pager-indicators:0.26.4-beta"
+
+
 
 }

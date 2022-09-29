@@ -1,4 +1,4 @@
-package com.hamzacanbaz.weatherapp.domain.usecase
+package com.hamzacanbaz.weatherapp.domain.usecase.weather
 
 import com.hamzacanbaz.weatherapp.data.model.weather.CurrentWeatherResponse
 import com.hamzacanbaz.weatherapp.domain.repository.WeatherRepository

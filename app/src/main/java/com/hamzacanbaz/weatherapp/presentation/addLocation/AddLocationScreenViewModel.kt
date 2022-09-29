@@ -8,7 +8,13 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.hamzacanbaz.weatherapp.data.model.countries.Country
+import com.hamzacanbaz.weatherapp.domain.usecase.countries.GetCountriesUseCase
+import com.hamzacanbaz.weatherapp.domain.usecase.countries.InsertCountryUseCase
+import com.hamzacanbaz.weatherapp.util.enums.SearchWidgetState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -18,7 +24,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddLocationScreenViewModel @Inject constructor(
-    application: Application
+    application: Application,
+    val insertCountryUseCase: InsertCountryUseCase,
+    val getCountriesUseCase: GetCountriesUseCase
 ) : AndroidViewModel(application) {
 
 
@@ -34,8 +42,10 @@ class AddLocationScreenViewModel @Inject constructor(
         mutableStateOf(arrayListOf())
     val countries: State<List<String>> = _countries
 
+
     init {
         readCountries()
+        getSavedLocationsFromLocalDb()
     }
 
 
@@ -85,5 +95,39 @@ class AddLocationScreenViewModel @Inject constructor(
         println("address -> ${address.latitude} ${address.longitude}")
         return Pair(address.latitude, address.longitude)
     }
+
+
+    fun addLocationToLocalDb(locationName: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+
+            try {
+                insertCountryUseCase.invoke(
+                    Country(
+                        name = locationName,
+                        lat = getLocationFromName(locationName).first,
+                        lon = getLocationFromName(locationName).second
+                    )
+                )
+                Log.i("Add Location", "Successful")
+            } catch (e: Exception) {
+                Log.e("Add Location", e.localizedMessage.toString())
+            }
+        }
+    }
+
+    fun getSavedLocationsFromLocalDb(onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+
+            try {
+                Log.i("Get Locations", "Successful")
+                getCountriesUseCase.invoke().forEachIndexed { index, country ->
+                    println("$index ---> $country")
+                }
+            } catch (e: Exception) {
+                Log.e("Get Locations", e.localizedMessage.toString())
+            }
+        }
+    }
+
 
 }

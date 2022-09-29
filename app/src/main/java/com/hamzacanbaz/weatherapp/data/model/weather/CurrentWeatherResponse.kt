@@ -3,7 +3,7 @@ package com.hamzacanbaz.weatherapp.data.model.weather
 import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.intl.Locale
 import com.hamzacanbaz.weatherapp.domain.model.CurrentWeatherModel
-import com.hamzacanbaz.weatherapp.util.enum.WeatherDescriptions
+import com.hamzacanbaz.weatherapp.util.enums.WeatherDescriptions
 import java.math.RoundingMode
 
 data class CurrentWeatherResponse(
@@ -35,7 +35,7 @@ fun CurrentWeatherResponse.toCurrentWeatherModel(): CurrentWeatherModel {
         wind.speed.toBigDecimal().setScale(1, RoundingMode.HALF_EVEN).toString(),
         name,
         weatherIcon = WeatherDescriptions.valueOf(
-            weather[0].description.replace(
+            weather[0].main.replace(
                 " ",
                 "_"
             ).uppercase()

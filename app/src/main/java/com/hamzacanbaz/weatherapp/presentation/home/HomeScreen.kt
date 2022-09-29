@@ -33,10 +33,15 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.accompanist.pager.ExperimentalPagerApi
+import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.hamzacanbaz.weatherapp.R
+import com.hamzacanbaz.weatherapp.data.model.countries.Country
 import com.hamzacanbaz.weatherapp.domain.model.CurrentWeatherModel
+import com.hamzacanbaz.weatherapp.domain.model.WeatherForecastModel
 import com.hamzacanbaz.weatherapp.ui.theme.CardBackground
 import com.hamzacanbaz.weatherapp.ui.theme.DateColor
 import com.hamzacanbaz.weatherapp.ui.theme.GradientDark
@@ -44,24 +49,23 @@ import com.hamzacanbaz.weatherapp.ui.theme.GradientLight
 import com.hamzacanbaz.weatherapp.util.Constants
 import com.hamzacanbaz.weatherapp.util.Resource
 
+@OptIn(ExperimentalPagerApi::class)
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
-    onClickAddLocation: () -> Unit,
-    lat: Double = Constants.LAT,
-    lon: Double = Constants.LON
+    onClickAddLocation: () -> Unit
 ) {
-    println("lat -> $lat lon-> $lon")
     val currentWeather by homeViewModel.getCurrentWeather()
     val weatherForecast by homeViewModel.getForecast()
     val time by homeViewModel.getDate()
     val swipeRefreshState =
         rememberSwipeRefreshState(isRefreshing = currentWeather is Resource.Loading)
     val scrollState = rememberScrollState()
+    val countries = homeViewModel.countries.value
     when (currentWeather) {
         is Resource.Success -> {
             val viewState = (currentWeather as Resource.Success<CurrentWeatherModel>).data
-            Surface() {
+            Surface {
                 Box(
                     modifier = Modifier
                         .background(
@@ -73,60 +77,41 @@ fun HomeScreen(
                         )
                         .fillMaxSize()
                 ) {
-                    SwipeRefresh(
-                        state = swipeRefreshState,
-                        onRefresh = {
-                            if (viewState != null) {
-                                homeViewModel.getWeatherCurrent(
-                                    Constants.LAT,
-                                    lon
+                    if (viewState != null) {
+                        if (countries.isNotEmpty()) {
+                            HorizontalPager(count = countries.size) { page ->
+                                // Our page content
+                                Screen(
+                                    viewState,
+                                    homeViewModel,
+                                    swipeRefreshState,
+                                    scrollState,
+                                    {
+                                        onClickAddLocation.invoke()
+                                    },
+                                    time,
+                                    weatherForecast,
+                                    countries[page]
                                 )
-                                homeViewModel.getWeatherForecast(
-                                    Constants.LAT,
-                                    lon
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .verticalScroll(scrollState)
-                        ) {
-                            AddLocation {
-                                onClickAddLocation.invoke()
-                            }
 
-                            Location(viewState!!.locationName)
-                            Date(time)
-                            DegreeAndIconPart(
-                                viewState.mainTemp,
-                                viewState.weatherIcon
-                            )
-                            MinMaxAndFeelingPart(
-                                viewState.mainTempMin,
-                                viewState.mainTempMax,
-                                viewState.mainFeelsLike
-                            )
-                            Weather(viewState.weatherDesc)
-                            WeatherDetails(
-                                viewState.mainHumidity,
-                                viewState.windSpeed
+                            }
+                        } else {
+                            Screen(
+                                viewState,
+                                homeViewModel,
+                                swipeRefreshState,
+                                scrollState,
+                                {
+                                    onClickAddLocation.invoke()
+                                },
+                                time,
+                                weatherForecast,
+                                Country(name = "Koycegiz", lat = 32.0, lon = 27.5)
                             )
 
-                            Text(
-                                text = "Hourly",
-                                modifier = Modifier.padding(start = 16.dp, top = 36.dp),
-                                fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp
-                            )
-
-                            LazyRow {
-                                items(weatherForecast.data ?: listOf()) {
-                                    NextForecastItem(it.temp, it.time, it.date, it.icon)
-                                }
-                            }
                         }
                     }
+
                 }
             }
         }
@@ -141,10 +126,80 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
-        homeViewModel.getWeatherCurrent(Constants.LAT, lon)
-        homeViewModel.getWeatherForecast(Constants.LAT, lon)
+        homeViewModel.getWeatherCurrent(Constants.LAT, Constants.LON)
+        homeViewModel.getWeatherForecast(Constants.LAT, Constants.LON)
+        homeViewModel.getSavedLocationsFromLocalDb()
     }
 }
+
+@Composable
+fun Screen(
+    viewState: CurrentWeatherModel,
+    homeViewModel: HomeViewModel,
+    swipeRefreshState: SwipeRefreshState,
+    scrollState: ScrollState,
+    onClickAddLocation: () -> Unit,
+    time: String,
+    weatherForecast: Resource<List<WeatherForecastModel>>,
+    country: Country
+) {
+
+    SwipeRefresh(
+        state = swipeRefreshState,
+        onRefresh = {
+            if (viewState != null) {
+                homeViewModel.getWeatherCurrent(
+                    country.lat,
+                    country.lon
+                )
+                homeViewModel.getWeatherForecast(
+                    country.lat,
+                    country.lon
+                )
+            }
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(scrollState)
+        ) {
+            AddLocation {
+                onClickAddLocation.invoke()
+            }
+
+            Location(viewState!!.locationName)
+            Date(time)
+            DegreeAndIconPart(
+                viewState.mainTemp,
+                viewState.weatherIcon
+            )
+            MinMaxAndFeelingPart(
+                viewState.mainTempMin,
+                viewState.mainTempMax,
+                viewState.mainFeelsLike
+            )
+            Weather(viewState.weatherDesc)
+            WeatherDetails(
+                viewState.mainHumidity,
+                viewState.windSpeed
+            )
+
+            Text(
+                text = "Hourly",
+                modifier = Modifier.padding(start = 16.dp, top = 36.dp),
+                fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp
+            )
+
+            LazyRow {
+                items(weatherForecast.data ?: listOf()) {
+                    NextForecastItem(it.temp, it.time, it.date, it.icon)
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun DegreeAndIconPart(currentTemp: String, iconSrc: Int) {

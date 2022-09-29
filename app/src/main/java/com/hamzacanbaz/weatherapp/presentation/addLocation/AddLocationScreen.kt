@@ -1,6 +1,7 @@
 package com.hamzacanbaz.weatherapp.presentation.addLocation
 
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,30 +15,43 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.hamzacanbaz.weatherapp.R
 import com.hamzacanbaz.weatherapp.ui.theme.GradientDark
 import com.hamzacanbaz.weatherapp.ui.theme.GradientLight
+import com.hamzacanbaz.weatherapp.ui.theme.Purple700
+import com.hamzacanbaz.weatherapp.util.enums.SearchWidgetState
 
 @Composable
 fun AddLocationScreen(
     addLocationScreenViewModel: AddLocationScreenViewModel = hiltViewModel(),
-    onLocationSelected: (lat: Double, long: Double) -> Unit
+    onLocationSelected: () -> Unit
 ) {
 
     val searchWidgetState by addLocationScreenViewModel.searchWidgetState
     val searchTextState by addLocationScreenViewModel.searchTextState
     val countries by addLocationScreenViewModel.countries
+
+    val openDialog = remember { mutableStateOf(false) }
+    var clickedLocation = remember { mutableStateOf("") }
+//    var text by remember { mutableStateOf("") }
+
 
     Scaffold(
         topBar = {
@@ -73,13 +87,28 @@ fun AddLocationScreen(
             ) {
                 LazyColumn {
                     items(countries) {
-                        LocationItem(it) {
-                            onLocationSelected.invoke(
-                                addLocationScreenViewModel.getLocationFromName(
-                                    it
-                                ).first, addLocationScreenViewModel.getLocationFromName(it).second
-                            )
 
+                        if (openDialog.value) {
+                            CustomDialog(clickedLocation.value,openDialog, onAcceptDialog = {
+//                                println(clickedLocation.value)
+                                addLocationScreenViewModel.addLocationToLocalDb(
+                                    clickedLocation.value,
+                                    onSuccess = {
+                                        onLocationSelected.invoke()
+                                    })
+
+                                openDialog.value = false
+
+
+                            },
+                                onCancelDialog = {
+
+                                })
+                        }
+                        LocationItem(it) {
+                            println(it)
+                            clickedLocation.value = it
+                            openDialog.value = true
                         }
                     }
                 }
@@ -233,6 +262,114 @@ fun SearchAppBar(
                 backgroundColor = Color.Transparent,
                 cursorColor = Color.White.copy(alpha = ContentAlpha.medium)
             ))
+    }
+}
+
+@Composable
+fun CustomDialog(
+    locationName:String,
+    openDialogCustom: MutableState<Boolean>,
+    onAcceptDialog: () -> Unit,
+    onCancelDialog: () -> Unit
+) {
+    Dialog(onDismissRequest = { openDialogCustom.value = false }) {
+        CustomDialogUI(openDialogCustom = openDialogCustom, onAccept = {
+            onAcceptDialog.invoke()
+        }, onCancel = {
+            openDialogCustom.value = false
+            onCancelDialog.invoke()
+        }, locationName = locationName)
+    }
+}
+
+//Layout
+@Composable
+fun CustomDialogUI(
+    locationName: String,
+    modifier: Modifier = Modifier,
+    openDialogCustom: MutableState<Boolean>,
+    onAccept: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Card(
+        //shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(10.dp),
+        // modifier = modifier.size(280.dp, 240.dp)
+        modifier = Modifier.padding(10.dp, 5.dp, 10.dp, 10.dp)
+    ) {
+        Column(
+            modifier
+                .background(Color.White)
+        ) {
+            Image(
+                painterResource(R.drawable.location),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .padding(top = 35.dp)
+                    .height(70.dp)
+                    .fillMaxWidth()
+            )
+
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = locationName,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 5.dp)
+                        .fillMaxWidth(),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Do you want to add this location to your home screen?",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 10.dp, start = 25.dp, end = 25.dp)
+                        .fillMaxWidth()
+                )
+            }
+            //.......................................................................
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .background(Purple700),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+
+                TextButton(onClick = {
+                    openDialogCustom.value = false
+                }) {
+
+                    Text(
+                        "Cancel",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .padding(top = 5.dp, bottom = 5.dp)
+                            .clickable {
+                                onCancel.invoke()
+                            }
+                    )
+                }
+                TextButton(onClick = {
+                    openDialogCustom.value = false
+                }) {
+                    Text(
+                        "Accept",
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .padding(top = 5.dp, bottom = 5.dp)
+                            .clickable {
+                                onAccept.invoke()
+                            }
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -56,9 +56,13 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                     addLocationScreenGraph(
-                        onLocationSelected = { lat: Double, lon: Double ->
-                            println("$lat $lon")
-                            navController.navigate(route = "${HomeScreenDestination.route}/$lat/$lon")
+//                        onLocationSelected = { lat: Double, lon: Double ->
+//                            println("$lat $lon")
+//                            navController.navigate(route = "${HomeScreenDestination.route}/$lat/$lon")
+//                        }
+                        onLocationSelected = {
+                            // TODO dialog onaylanirsa
+                            navController.navigate(route = HomeScreenDestination.route)
                         }
                     )
 

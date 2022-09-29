@@ -9,7 +9,7 @@ object AddLocationScreenDestination : Destination {
     override val route: String = "add_location_screen"
 }
 
-fun NavGraphBuilder.addLocationScreenGraph(onLocationSelected: (Double, Double) -> Unit) {
+fun NavGraphBuilder.addLocationScreenGraph(onLocationSelected: () -> Unit) {
     composable(route = AddLocationScreenDestination.route ) {
         AddLocationScreen(onLocationSelected = onLocationSelected)
     }

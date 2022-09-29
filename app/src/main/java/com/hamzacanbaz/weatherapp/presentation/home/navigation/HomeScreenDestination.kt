@@ -14,9 +14,6 @@ fun NavGraphBuilder.homeScreenGraph(onClickAddLocation: () -> Unit) {
         val lat = it.arguments?.getString("lat")
         val lon = it.arguments?.getString("lon")
         HomeScreen(
-            onClickAddLocation = onClickAddLocation,
-            lat = lat?.toDouble() ?: 12.0,
-            lon = lon?.toDouble() ?: 23.0
-        )
+            onClickAddLocation = onClickAddLocation)
     }
 }
