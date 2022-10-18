@@ -1,14 +1,11 @@
 package com.hamzacanbaz.weatherapp.presentation.home
 
 import android.app.Application
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hamzacanbaz.weatherapp.data.model.countries.Country
-import com.hamzacanbaz.weatherapp.data.model.weather.toCurrentWeatherModel
-import com.hamzacanbaz.weatherapp.data.model.weatherForecast.toWeatherForecastList
 import com.hamzacanbaz.weatherapp.domain.model.CurrentWeatherModel
 import com.hamzacanbaz.weatherapp.domain.model.WeatherForecastModel
 import com.hamzacanbaz.weatherapp.domain.usecase.countries.GetCountriesUseCase
@@ -17,6 +14,8 @@ import com.hamzacanbaz.weatherapp.domain.usecase.weather.GetWeatherForecastUseCa
 import com.hamzacanbaz.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import javax.inject.Inject
@@ -32,12 +31,26 @@ class HomeViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     private val _date = mutableStateOf("")
-    private val currentWeather = mutableStateOf<Resource<CurrentWeatherModel>>(Resource.Loading())
+    private val currentWeather =
+        mutableStateOf<Resource<List<CurrentWeatherModel>>>(Resource.Loading())
     private val weatherForecast =
-        mutableStateOf<Resource<List<WeatherForecastModel>>>(Resource.Loading())
+        mutableStateOf<Resource<List<List<WeatherForecastModel>>>>(Resource.Loading())
 
-    private val _countries: MutableStateFlow<List<Country>> = MutableStateFlow(listOf())
+    private val _countries: MutableStateFlow<List<Country>> = MutableStateFlow(mutableListOf())
     val countries = _countries
+    private val _countriesCurrentWeatherList: MutableStateFlow<List<CurrentWeatherModel>> =
+        MutableStateFlow(
+            listOf()
+        )
+    val countriesCurrentWeatherList: StateFlow<List<CurrentWeatherModel>> =
+        _countriesCurrentWeatherList
+
+    private val _countriesWeatherForecastList: MutableStateFlow<ArrayList<List<WeatherForecastModel>>> =
+        MutableStateFlow(
+            arrayListOf()
+        )
+    val countriesWeatherForecastList: StateFlow<List<List<WeatherForecastModel>>> =
+        _countriesWeatherForecastList
 
     init {
         getCurrentTime()
@@ -45,40 +58,50 @@ class HomeViewModel @Inject constructor(
     }
 
     fun getDate(): State<String> = _date
-    fun getCurrentWeather(): State<Resource<CurrentWeatherModel>> = currentWeather
-    fun getForecast(): State<Resource<List<WeatherForecastModel>>> = weatherForecast
+    fun getCurrentWeather(): State<Resource<List<CurrentWeatherModel>>> = currentWeather
+    fun getForecast(): State<Resource<List<List<WeatherForecastModel>>>> = weatherForecast
 
     fun getWeatherCurrent(lat: Double, long: Double) {
         viewModelScope.launch {
-            currentWeather.value = Resource.Loading()
-
-            try {
-                currentWeather.value = Resource.Success(
-                    getCurrentWeatherUseCase.invoke(
-                        lat, long, appId
-                    ).toCurrentWeatherModel()
-
-                )
-                println(currentWeather.value.data)
-            } catch (e: Exception) {
-                currentWeather.value = Resource.Error(e.message.toString())
+            getCurrentWeatherUseCase.invoke(lat, long, appId).collect { result ->
+                when (result) {
+                    is Resource.Loading -> {}
+                    is Resource.Success -> {
+                        println("getWeatherCurrent success ")
+                        _countriesCurrentWeatherList.update {
+                            it + result.data!!
+                        }
+                        if (countries.value.size == countriesCurrentWeatherList.value.size) {
+                            currentWeather.value = Resource.Success(
+                                countriesCurrentWeatherList.value
+                            )
+                        }
+                    }
+                    is Resource.Error -> {}
+                }
             }
+            println("size" + countriesCurrentWeatherList.value.size)
+
         }
+
 
     }
 
     fun getWeatherForecast(lat: Double, long: Double) {
         viewModelScope.launch {
-            currentWeather.value = Resource.Loading()
-
-            try {
-                weatherForecast.value = Resource.Success(
-                    getWeatherForecastUseCase.invoke(lat, long, appId)
-                        .toWeatherForecastList()
-                )
-                println(weatherForecast.value.data)
-            } catch (e: Exception) {
-                currentWeather.value = Resource.Error(e.message.toString())
+            getWeatherForecastUseCase.invoke(lat, long, appId).collect { result ->
+                when (result) {
+                    is Resource.Loading -> {}
+                    is Resource.Success -> {
+                        _countriesWeatherForecastList.value.add(result.data ?: listOf())
+                        if (countries.value.size == countriesWeatherForecastList.value.size) {
+                            weatherForecast.value = Resource.Success(
+                                countriesWeatherForecastList.value
+                            )
+                        }
+                    }
+                    is Resource.Error -> {}
+                }
             }
         }
     }
@@ -91,13 +114,24 @@ class HomeViewModel @Inject constructor(
 
     fun getSavedLocationsFromLocalDb(onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
+            getCountriesUseCase.invoke().collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        _countries.value = result.data ?: listOf()
+                        getAllWeatherForecastForCountries()
 
-            try {
-                Log.i("Get Locations", "Successful")
-                _countries.value = getCountriesUseCase.invoke()
-            } catch (e: Exception) {
-                Log.e("Get Locations", e.localizedMessage.toString())
+                    }
+                    is Resource.Error -> {}
+                    is Resource.Loading -> {}
+                }
             }
+        }
+    }
+
+    fun getAllWeatherForecastForCountries() {
+        countries.value.forEach {
+            getWeatherCurrent(it.lat, it.lon)
+            getWeatherForecast(it.lat, it.lon)
         }
     }
 

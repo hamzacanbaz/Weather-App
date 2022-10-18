@@ -12,9 +12,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +33,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -62,9 +61,13 @@ fun HomeScreen(
         rememberSwipeRefreshState(isRefreshing = currentWeather is Resource.Loading)
     val scrollState = rememberScrollState()
     val countries = homeViewModel.countries.value
+    var rememberPage by remember { mutableStateOf(0) }
+    val pagerState = rememberPagerState()
+
     when (currentWeather) {
         is Resource.Success -> {
-            val viewState = (currentWeather as Resource.Success<CurrentWeatherModel>).data
+            val viewState: List<CurrentWeatherModel> =
+                (currentWeather as Resource.Success<List<CurrentWeatherModel>>).data ?: listOf()
             Surface {
                 Box(
                     modifier = Modifier
@@ -77,27 +80,13 @@ fun HomeScreen(
                         )
                         .fillMaxSize()
                 ) {
-                    if (viewState != null) {
-                        if (countries.isNotEmpty()) {
-                            HorizontalPager(count = countries.size) { page ->
-                                // Our page content
-                                Screen(
-                                    viewState,
-                                    homeViewModel,
-                                    swipeRefreshState,
-                                    scrollState,
-                                    {
-                                        onClickAddLocation.invoke()
-                                    },
-                                    time,
-                                    weatherForecast,
-                                    countries[page]
-                                )
+                    if (countries.isNotEmpty()) {
+                        HorizontalPager(count = countries.size, state = pagerState) { page ->
+                            rememberPage = page
 
-                            }
-                        } else {
+                            // Our page content
                             Screen(
-                                viewState,
+                                viewState[page],
                                 homeViewModel,
                                 swipeRefreshState,
                                 scrollState,
@@ -105,11 +94,27 @@ fun HomeScreen(
                                     onClickAddLocation.invoke()
                                 },
                                 time,
-                                weatherForecast,
-                                Country(name = "Koycegiz", lat = 32.0, lon = 27.5)
+                                weatherForecast.data?.get(page) ?: listOf(),
+                                countries[page],
+                                page
                             )
 
                         }
+                    } else {
+                        Screen(
+                            viewState[0],
+                            homeViewModel,
+                            swipeRefreshState,
+                            scrollState,
+                            {
+                                onClickAddLocation.invoke()
+                            },
+                            time,
+                            weatherForecast.data?.get(0) ?: listOf(),
+                            Country(name = "Koycegiz", lat = 32.0, lon = 27.5),
+                            0
+                        )
+
                     }
 
                 }
@@ -125,8 +130,9 @@ fun HomeScreen(
         }
     }
 
+
     LaunchedEffect(Unit) {
-        homeViewModel.getWeatherCurrent(Constants.LAT, Constants.LON)
+        homeViewModel.getAllWeatherForecastForCountries()
         homeViewModel.getWeatherForecast(Constants.LAT, Constants.LON)
         homeViewModel.getSavedLocationsFromLocalDb()
     }
@@ -140,18 +146,16 @@ fun Screen(
     scrollState: ScrollState,
     onClickAddLocation: () -> Unit,
     time: String,
-    weatherForecast: Resource<List<WeatherForecastModel>>,
-    country: Country
+    weatherForecast: List<WeatherForecastModel>,
+    country: Country,
+    page: Int
 ) {
-
+    println("current page number is $page")
     SwipeRefresh(
         state = swipeRefreshState,
         onRefresh = {
             if (viewState != null) {
-                homeViewModel.getWeatherCurrent(
-                    country.lat,
-                    country.lon
-                )
+                homeViewModel.getAllWeatherForecastForCountries()
                 homeViewModel.getWeatherForecast(
                     country.lat,
                     country.lon
@@ -192,7 +196,7 @@ fun Screen(
             )
 
             LazyRow {
-                items(weatherForecast.data ?: listOf()) {
+                items(weatherForecast) {
                     NextForecastItem(it.temp, it.time, it.date, it.icon)
                 }
             }

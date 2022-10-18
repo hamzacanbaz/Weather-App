@@ -40,6 +40,8 @@ android {
     }
     composeOptions {
         kotlinCompilerExtensionVersion compose_version
+        kotlinCompilerVersion '1.6.10'
+
     }
     packagingOptions {
         exclude("META-INF/ASL-2.0.txt")
@@ -129,6 +131,9 @@ dependencies {
 
     // If using indicators, also depend on
     implementation "com.google.accompanist:accompanist-pager-indicators:0.26.4-beta"
+
+    implementation "androidx.glance:glance-appwidget:1.0.0-alpha01"
+
 
 
 

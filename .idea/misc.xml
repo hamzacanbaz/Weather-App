@@ -3,6 +3,9 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Projects/Weather-App-Hilt/app/src/main/res/drawable/bg_widget.xml" value="0.169" />
+        <entry key="..\:/Projects/Weather-App-Hilt/app/src/main/res/xml/layout.xml" value="0.253125" />
+        <entry key="..\:/Projects/Weather-App-Hilt/app/src/main/res/xml/widget.xml" value="0.25416666666666665" />
         <entry key="..\:/Users/h84266728/AndroidStudioProjects/WeatherApp/app/src/main/res/drawable/ic_launcher_background.xml" value="0.1605" />
       </map>
     </option>

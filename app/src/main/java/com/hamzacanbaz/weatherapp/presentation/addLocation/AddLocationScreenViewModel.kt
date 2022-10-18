@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.hamzacanbaz.weatherapp.data.model.countries.Country
 import com.hamzacanbaz.weatherapp.domain.usecase.countries.GetCountriesUseCase
 import com.hamzacanbaz.weatherapp.domain.usecase.countries.InsertCountryUseCase
+import com.hamzacanbaz.weatherapp.util.Resource
 import com.hamzacanbaz.weatherapp.util.enums.SearchWidgetState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -118,14 +119,18 @@ class AddLocationScreenViewModel @Inject constructor(
     fun getSavedLocationsFromLocalDb(onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
 
-            try {
-                Log.i("Get Locations", "Successful")
-                getCountriesUseCase.invoke().forEachIndexed { index, country ->
-                    println("$index ---> $country")
+            getCountriesUseCase.invoke().collect { result ->
+                when (result) {
+                    is Resource.Loading -> {}
+                    is Resource.Success -> {
+                        println(result.data?.forEachIndexed { index, country ->
+                            println("$index ---> $country")
+                        })
+                    }
+                    is Resource.Error -> {}
                 }
-            } catch (e: Exception) {
-                Log.e("Get Locations", e.localizedMessage.toString())
             }
+
         }
     }
 
